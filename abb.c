@@ -8,8 +8,6 @@ typedef struct NoABB {
     struct NoABB* direita;
 } NoABB;
 
-int comparacoes = 0;
-
 NoABB* criarNoABB(int dado) {
     NoABB* novoNo = (NoABB*)malloc(sizeof(NoABB));
     novoNo->dado = dado;
@@ -24,7 +22,7 @@ NoABB* inserir(NoABB* raiz, int dado) {
     }
     if (dado < raiz->dado) {
         raiz->esquerda = inserir(raiz->esquerda, dado);
-    } else {
+    } else if (dado > raiz->dado) {
         raiz->direita = inserir(raiz->direita, dado);
     }
     return raiz;
@@ -50,81 +48,48 @@ void percorrerEmOrdem(NoABB* raiz) {
     }
 }
 
-void lerValoresDoArquivo(const char* nomeArquivo, int** valores, int* n) {
-    FILE* arquivo = fopen(nomeArquivo, "r");
-    if (arquivo == NULL) {
-        perror("Erro ao abrir o arquivo");
-        exit(EXIT_FAILURE);
-    }
-
-    int capacidade = 1000;
-    *valores = (int*)malloc(capacidade * sizeof(int));
-    *n = 0;
-
-    int valor;
-    while (fscanf(arquivo, "%d", &valor) != EOF) {
-        if (*n >= capacidade) {
-            capacidade *= 2;
-            *valores = (int*)realloc(*valores, capacidade * sizeof(int));
-        }
-        (*valores)[(*n)++] = valor;
-    }
-
-    fclose(arquivo);
-}
-
-void buscarAleatorios(NoABB* raiz, int* valores, int n, double* tempoTotal, int* comparacoesTotal) {
-    int numBuscas = n / 5;  // 20% dos valores
-    int* valoresSelecionados = (int*)malloc(numBuscas * sizeof(int));
-
+void buscar20PorCento(NoABB* raiz, int* valores, int numValores) {
+    int n = numValores * 0.20;
     srand(time(NULL));
-    for (int i = 0; i < numBuscas; i++) {
-        int index = rand() % n;
-        valoresSelecionados[i] = valores[index];
-    }
-
-    *tempoTotal = 0.0;
-    *comparacoesTotal = 0;
-    for (int i = 0; i < numBuscas; i++) {
+    for (int i = 0; i < n; i++) {
+        int index = rand() % numValores;
+        int valorParaBuscar = valores[index];
         int comparacoes = 0;
         clock_t inicio = clock();
-        buscar(raiz, valoresSelecionados[i], &comparacoes);
+        NoABB* resultado = buscar(raiz, valorParaBuscar, &comparacoes);
         clock_t fim = clock();
-        *tempoTotal += (double)(fim - inicio) / CLOCKS_PER_SEC;
-        *comparacoesTotal += comparacoes;
-    }
+        double tempo = (double)(fim - inicio) / CLOCKS_PER_SEC;
 
-    free(valoresSelecionados);
+        if (resultado != NULL) {
+            printf("Valor %d encontrado na árvore.\n", valorParaBuscar);
+        } else {
+            printf("Valor %d não encontrado na árvore.\n", valorParaBuscar);
+        }
+        printf("Tempo de busca: %f segundos\n", tempo);
+        printf("Número de comparações: %d\n", comparacoes);
+    }
 }
 
-int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        fprintf(stderr, "Uso: %s <nome do arquivo>\n", argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    const char* nomeArquivo = argv[1];
+int main() {
     NoABB* raiz = NULL;
-
-    int* valores;
-    int n;
-    lerValoresDoArquivo(nomeArquivo, &valores, &n);
-
-    for (int i = 0; i < n; i++) {
+    int numValores = 5000;
+    int* valores = (int*)malloc(numValores * sizeof(int));
+    
+    // Carregar os valores do arquivo
+    FILE* arquivo = fopen("entrada_5000.txt", "r");
+    for (int i = 0; i < numValores; i++) {
+        fscanf(arquivo, "%d", &valores[i]);
         raiz = inserir(raiz, valores[i]);
     }
-
-    double tempoTotal;
-    int comparacoesTotal;
-    buscarAleatorios(raiz, valores, n, &tempoTotal, &comparacoesTotal);
-
-    printf("Árvore ABB em ordem: ");
+    fclose(arquivo);
+    
+    printf("Árvore Binária de Busca em ordem: ");
     percorrerEmOrdem(raiz);
     printf("\n");
 
-    printf("Número total de comparações: %d\n", comparacoesTotal);
-    printf("Tempo total de busca: %f segundos\n", tempoTotal);
+    buscar20PorCento(raiz, valores, numValores);
 
     free(valores);
     return 0;
 }
+
