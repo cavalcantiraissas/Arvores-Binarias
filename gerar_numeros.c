@@ -2,15 +2,15 @@
 #include <stdlib.h>
 #include <time.h>
 
-// Função para gerar números inteiros únicos aleatórios
 void gerarNumerosUnicos(int* array, int tamanho) {
     int i, j, numero, unico;
 
     for (i = 0; i < tamanho; i++) {
         do {
             unico = 1;
-            numero = rand() % 100000 + 1; 
+            numero = rand() % 100000 + 1;
             
+            // Verifica se o número já foi gerado
             for (j = 0; j < i; j++) {
                 if (array[j] == numero) {
                     unico = 0;
@@ -28,8 +28,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    int numeroDeValores = atoi(argv[1]);
-    const char* nomeDoArquivo = argv[2];
+    int numeroDeValores = atoi(argv[1]); // Número de valores a serem gerados
+    const char* nomeDoArquivo = argv[2]; // Nome do arquivo de saída
 
     if (numeroDeValores <= 0) {
         printf("O número de valores deve ser maior que zero.\n");
@@ -42,7 +42,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Inicializa o gerador de números aleatórios
     srand(time(NULL));
 
     gerarNumerosUnicos(numeros, numeroDeValores);
