@@ -13,23 +13,27 @@ typedef struct NoRubroNegro {
     struct NoRubroNegro* pai;
 } NoRubroNegro;
 
+int rotacoes = 0;  
+int comparacoes = 0;  
+
 NoRubroNegro* criarNoRubroNegro(int dado) {
     NoRubroNegro* novoNo = (NoRubroNegro*)malloc(sizeof(NoRubroNegro));
     novoNo->dado = dado;
-    novoNo->cor = VERMELHO; 
+    novoNo->cor = VERMELHO;
     novoNo->esquerda = NULL;
     novoNo->direita = NULL;
     novoNo->pai = NULL;
     return novoNo;
 }
 
-NoRubroNegro* rotacionarEsquerda(NoRubroNegro* x) {
+NoRubroNegro* rotacionarEsquerda(NoRubroNegro* raiz, NoRubroNegro* x) {
+    rotacoes++; 
     NoRubroNegro* y = x->direita;
     x->direita = y->esquerda;
     if (y->esquerda != NULL) y->esquerda->pai = x;
     y->pai = x->pai;
     if (x->pai == NULL) {
-        // x é a raiz
+        raiz = y;
     } else if (x == x->pai->esquerda) {
         x->pai->esquerda = y;
     } else {
@@ -37,16 +41,17 @@ NoRubroNegro* rotacionarEsquerda(NoRubroNegro* x) {
     }
     y->esquerda = x;
     x->pai = y;
-    return y;
+    return raiz;
 }
 
-NoRubroNegro* rotacionarDireita(NoRubroNegro* y) {
+NoRubroNegro* rotacionarDireita(NoRubroNegro* raiz, NoRubroNegro* y) {
+    rotacoes++; 
     NoRubroNegro* x = y->esquerda;
     y->esquerda = x->direita;
     if (x->direita != NULL) x->direita->pai = y;
     x->pai = y->pai;
     if (y->pai == NULL) {
-        // y é a raiz
+        raiz = x;
     } else if (y == y->pai->esquerda) {
         y->pai->esquerda = x;
     } else {
@@ -54,10 +59,10 @@ NoRubroNegro* rotacionarDireita(NoRubroNegro* y) {
     }
     x->direita = y;
     y->pai = x;
-    return x;
+    return raiz;
 }
 
-void ajustarNoRubroNegro(NoRubroNegro* no) {
+NoRubroNegro* ajustarNoRubroNegro(NoRubroNegro* raiz, NoRubroNegro* no) {
     while (no != NULL && no->pai != NULL && no->pai->cor == VERMELHO) {
         if (no->pai == no->pai->pai->esquerda) {
             NoRubroNegro* tio = no->pai->pai->direita;
@@ -69,11 +74,11 @@ void ajustarNoRubroNegro(NoRubroNegro* no) {
             } else {
                 if (no == no->pai->direita) {
                     no = no->pai;
-                    rotacionarEsquerda(no);
+                    raiz = rotacionarEsquerda(raiz, no);
                 }
                 no->pai->cor = PRETO;
                 no->pai->pai->cor = VERMELHO;
-                rotacionarDireita(no->pai->pai);
+                raiz = rotacionarDireita(raiz, no->pai->pai);
             }
         } else {
             NoRubroNegro* tio = no->pai->pai->esquerda;
@@ -85,14 +90,16 @@ void ajustarNoRubroNegro(NoRubroNegro* no) {
             } else {
                 if (no == no->pai->esquerda) {
                     no = no->pai;
-                    rotacionarDireita(no);
+                    raiz = rotacionarDireita(raiz, no);
                 }
                 no->pai->cor = PRETO;
                 no->pai->pai->cor = VERMELHO;
-                rotacionarEsquerda(no->pai->pai);
+                raiz = rotacionarEsquerda(raiz, no->pai->pai);
             }
         }
     }
+    raiz->cor = PRETO;
+    return raiz;
 }
 
 NoRubroNegro* inserir(NoRubroNegro* raiz, int dado) {
@@ -115,8 +122,7 @@ NoRubroNegro* inserir(NoRubroNegro* raiz, int dado) {
     } else {
         y->direita = novoNo;
     }
-    ajustarNoRubroNegro(novoNo);
-    raiz->cor = PRETO;
+    raiz = ajustarNoRubroNegro(raiz, novoNo);
     return raiz;
 }
 
@@ -135,38 +141,87 @@ NoRubroNegro* buscar(NoRubroNegro* raiz, int dado, int* comparacoes) {
 void percorrerEmOrdem(NoRubroNegro* raiz) {
     if (raiz != NULL) {
         percorrerEmOrdem(raiz->esquerda);
-        printf("%d ", raiz->dado);
+        printf("%d(%s) ", raiz->dado, raiz->cor == PRETO ? "PRETO" : "VERMELHO");
         percorrerEmOrdem(raiz->direita);
     }
 }
 
-int main() {
+void lerValoresDoArquivo(const char* nomeArquivo, int** valores, int* n) {
+    FILE* arquivo = fopen(nomeArquivo, "r");
+    if (arquivo == NULL) {
+        perror("Erro ao abrir o arquivo");
+        exit(EXIT_FAILURE);
+    }
+
+    int capacidade = 1000;
+    *valores = (int*)malloc(capacidade * sizeof(int));
+    *n = 0;
+
+    int valor;
+    while (fscanf(arquivo, "%d", &valor) != EOF) {
+        if (*n >= capacidade) {
+            capacidade *= 2;
+            *valores = (int*)realloc(*valores, capacidade * sizeof(int));
+        }
+        (*valores)[(*n)++] = valor;
+    }
+
+    fclose(arquivo);
+}
+
+void buscarAleatorios(NoRubroNegro* raiz, int* valores, int n, double* tempoTotal, int* comparacoesTotal) {
+    int numBuscas = n / 5;  // 20% dos valores
+    int* valoresSelecionados = (int*)malloc(numBuscas * sizeof(int));
+
+    srand(time(NULL));
+    for (int i = 0; i < numBuscas; i++) {
+        int index = rand() % n;
+        valoresSelecionados[i] = valores[index];
+    }
+
+    *tempoTotal = 0.0;
+    *comparacoesTotal = 0;
+    for (int i = 0; i < numBuscas; i++) {
+        int comparacoes = 0;
+        clock_t inicio = clock();
+        buscar(raiz, valoresSelecionados[i], &comparacoes);
+        clock_t fim = clock();
+        *tempoTotal += (double)(fim - inicio) / CLOCKS_PER_SEC;
+        *comparacoesTotal += comparacoes;
+    }
+
+    free(valoresSelecionados);
+}
+
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Uso: %s <nome do arquivo>\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    const char* nomeArquivo = argv[1];
     NoRubroNegro* raiz = NULL;
-    int valores[] = {50, 30, 20, 40, 70, 60, 80};
-    int n = sizeof(valores) / sizeof(valores[0]);
+
+    int* valores;
+    int n;
+    lerValoresDoArquivo(nomeArquivo, &valores, &n);
 
     for (int i = 0; i < n; i++) {
         raiz = inserir(raiz, valores[i]);
     }
 
+    double tempoTotal;
+    int comparacoesTotal;
+    buscarAleatorios(raiz, valores, n, &tempoTotal, &comparacoesTotal);
+
     printf("Árvore Rubro-Negra em ordem: ");
     percorrerEmOrdem(raiz);
     printf("\n");
 
-    int valorParaBuscar = 40;
-    int comparacoes = 0;
-    clock_t inicio = clock();
-    NoRubroNegro* resultado = buscar(raiz, valorParaBuscar, &comparacoes);
-    clock_t fim = clock();
-    double tempo = (double)(fim - inicio) / CLOCKS_PER_SEC;
+    printf("Número total de rotações: %d\n", rotacoes);
+    printf("Número total de comparações: %d\n", comparacoesTotal);
+    printf("Tempo total de busca: %f segundos\n", tempoTotal);
 
-    if (resultado != NULL) {
-        printf("Valor %d encontrado na árvore.\n", valorParaBuscar);
-    } else {
-        printf("Valor %d não encontrado na árvore.\n", valorParaBuscar);
-    }
-    printf("Tempo de busca: %f segundos\n", tempo);
-    printf("Número de comparações: %d\n", comparacoes);
-
+    free(valores);
     return 0;
 }
