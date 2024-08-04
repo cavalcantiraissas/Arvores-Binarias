@@ -73,3 +73,25 @@
     * ./abb arquivo_5000.txt
     * ./avl arquivo_5000.txt
     * ./arn arquivo_5000.txt
+
+# Como Executar 
+
+## Prepare os Arquivos de Entrada: 
+Use o script gerar_numeros.c para criar arquivos de entrada com 5.000 e 20.000 números, como entrada_5000.txt e entrada_20000.txt.
+
+## Compile os Códigos 
+- gcc gerar_numeros.c -o gerar_numeros
+- gcc abb.c -o abb
+- gcc avl.c -o avl
+- gcc arn.c -o arn
+
+## Gere os Arquivos de Entrada: 
+Execute o programa gerar_numeros para criar os arquivos de entrada:
+- ./gerar_numeros 5000
+- ./gerar_numeros 20000
+
+## Execute os Programas das Árvores: 
+- ./abb
+- ./avl
+- ./arn
+
