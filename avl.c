@@ -9,9 +9,8 @@ typedef struct NoAVL {
     int altura;
 } NoAVL;
 
-int altura(NoAVL* no) {
-    return (no == NULL) ? 0 : no->altura;
-}
+int rotacoes = 0;  // Variável global para contar rotações
+int comparacoes = 0;  // Variável global para contar comparações
 
 NoAVL* criarNoAVL(int dado) {
     NoAVL* novoNo = (NoAVL*)malloc(sizeof(NoAVL));
@@ -22,65 +21,44 @@ NoAVL* criarNoAVL(int dado) {
     return novoNo;
 }
 
-NoAVL* rotacionarDireita(NoAVL* y) {
-    NoAVL* x = y->esquerda;
-    NoAVL* T2 = x->direita;
-
-    x->direita = y;
-    y->esquerda = T2;
-
-    y->altura = 1 + (altura(y->esquerda) > altura(y->direita) ? altura(y->esquerda) : altura(y->direita));
-    x->altura = 1 + (altura(x->esquerda) > altura(x->direita) ? altura(x->esquerda) : altura(x->direita));
-
-    return x;
+int altura(NoAVL* no) {
+    return no ? no->altura : 0;
 }
 
-    NoAVL* rotacionarEsquerda(NoAVL* x) {
-    NoAVL* y = x->direita;
-    NoAVL* T2 = y->esquerda;
+int max(int a, int b) {
+    return (a > b) ? a : b;
+}
 
-    y->esquerda = x;
-    x->direita = T2;
+NoAVL* rotacionarEsquerda(NoAVL* raiz) {
+    rotacoes++;  // Incrementa o contador de rotações
+    NoAVL* novoRaiz = raiz->direita;
+    NoAVL* temp = novoRaiz->esquerda;
+    novoRaiz->esquerda = raiz;
+    raiz->direita = temp;
+    raiz->altura = max(altura(raiz->esquerda), altura(raiz->direita)) + 1;
+    novoRaiz->altura = max(altura(novoRaiz->esquerda), altura(novoRaiz->direita)) + 1;
+    return novoRaiz;
+}
 
-    x->altura = 1 + (altura(x->esquerda) > altura(x->direita) ? altura(x->esquerda) : altura(x->direita));
-    y->altura = 1 + (altura(y->esquerda) > altura(y->direita) ? altura(y->esquerda) : altura(y->direita));
-
-    return y;
+NoAVL* rotacionarDireita(NoAVL* raiz) {
+    rotacoes++;  // Incrementa o contador de rotações
+    NoAVL* novoRaiz = raiz->esquerda;
+    NoAVL* temp = novoRaiz->direita;
+    novoRaiz->direita = raiz;
+    raiz->esquerda = temp;
+    raiz->altura = max(altura(raiz->esquerda), altura(raiz->direita)) + 1;
+    novoRaiz->altura = max(altura(novoRaiz->esquerda), altura(novoRaiz->direita)) + 1;
+    return novoRaiz;
 }
 
 int obterBalanceamento(NoAVL* no) {
-    return (no == NULL) ? 0 : altura(no->esquerda) - altura(no->direita);
-}
-
-NoAVL* balancear(NoAVL* no) {
-    int balanceamento = obterBalanceamento(no);
-
-    if (balanceamento > 1 && no->dado > no->esquerda->dado) {
-        return rotacionarDireita(no);
-    }
-
-    if (balanceamento < -1 && no->dado < no->direita->dado) {
-        return rotacionarEsquerda(no);
-    }
-
-    if (balanceamento > 1 && no->dado < no->esquerda->dado) {
-        no->esquerda = rotacionarEsquerda(no->esquerda);
-        return rotacionarDireita(no);
-    }
-
-    if (balanceamento < -1 && no->dado > no->direita->dado) {
-        no->direita = rotacionarDireita(no->direita);
-        return rotacionarEsquerda(no);
-    }
-
-    return no;
+    return no ? altura(no->esquerda) - altura(no->direita) : 0;
 }
 
 NoAVL* inserir(NoAVL* raiz, int dado) {
     if (raiz == NULL) {
         return criarNoAVL(dado);
     }
-
     if (dado < raiz->dado) {
         raiz->esquerda = inserir(raiz->esquerda, dado);
     } else if (dado > raiz->dado) {
@@ -89,9 +67,25 @@ NoAVL* inserir(NoAVL* raiz, int dado) {
         return raiz;
     }
 
-    raiz->altura = 1 + (altura(raiz->esquerda) > altura(raiz->direita) ? altura(raiz->esquerda) : altura(raiz->direita));
+    raiz->altura = max(altura(raiz->esquerda), altura(raiz->direita)) + 1;
+    int balanceamento = obterBalanceamento(raiz);
 
-    return balancear(raiz);
+    if (balanceamento > 1 && dado < raiz->esquerda->dado) {
+        return rotacionarDireita(raiz);
+    }
+    if (balanceamento < -1 && dado > raiz->direita->dado) {
+        return rotacionarEsquerda(raiz);
+    }
+    if (balanceamento > 1 && dado > raiz->esquerda->dado) {
+        raiz->esquerda = rotacionarEsquerda(raiz->esquerda);
+        return rotacionarDireita(raiz);
+    }
+    if (balanceamento < -1 && dado < raiz->direita->dado) {
+        raiz->direita = rotacionarDireita(raiz->direita);
+        return rotacionarEsquerda(raiz);
+    }
+
+    return raiz;
 }
 
 NoAVL* buscar(NoAVL* raiz, int dado, int* comparacoes) {
@@ -114,34 +108,82 @@ void percorrerEmOrdem(NoAVL* raiz) {
     }
 }
 
-int main() {
+void lerValoresDoArquivo(const char* nomeArquivo, int** valores, int* n) {
+    FILE* arquivo = fopen(nomeArquivo, "r");
+    if (arquivo == NULL) {
+        perror("Erro ao abrir o arquivo");
+        exit(EXIT_FAILURE);
+    }
+
+    int capacidade = 1000;
+    *valores = (int*)malloc(capacidade * sizeof(int));
+    *n = 0;
+
+    int valor;
+    while (fscanf(arquivo, "%d", &valor) != EOF) {
+        if (*n >= capacidade) {
+            capacidade *= 2;
+            *valores = (int*)realloc(*valores, capacidade * sizeof(int));
+        }
+        (*valores)[(*n)++] = valor;
+    }
+
+    fclose(arquivo);
+}
+
+void buscarAleatorios(NoAVL* raiz, int* valores, int n, double* tempoTotal, int* comparacoesTotal) {
+    int numBuscas = n / 5;  // 20% dos valores
+    int* valoresSelecionados = (int*)malloc(numBuscas * sizeof(int));
+
+    srand(time(NULL));
+    for (int i = 0; i < numBuscas; i++) {
+        int index = rand() % n;
+        valoresSelecionados[i] = valores[index];
+    }
+
+    *tempoTotal = 0.0;
+    *comparacoesTotal = 0;
+    for (int i = 0; i < numBuscas; i++) {
+        int comparacoes = 0;
+        clock_t inicio = clock();
+        buscar(raiz, valoresSelecionados[i], &comparacoes);
+        clock_t fim = clock();
+        *tempoTotal += (double)(fim - inicio) / CLOCKS_PER_SEC;
+        *comparacoesTotal += comparacoes;
+    }
+
+    free(valoresSelecionados);
+}
+
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Uso: %s <nome do arquivo>\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    const char* nomeArquivo = argv[1];
     NoAVL* raiz = NULL;
-    int valores[] = {50, 30, 20, 40, 70, 60, 80};
-    int n = sizeof(valores) / sizeof(valores[0]);
+
+    int* valores;
+    int n;
+    lerValoresDoArquivo(nomeArquivo, &valores, &n);
 
     for (int i = 0; i < n; i++) {
         raiz = inserir(raiz, valores[i]);
     }
 
+    double tempoTotal;
+    int comparacoesTotal;
+    buscarAleatorios(raiz, valores, n, &tempoTotal, &comparacoesTotal);
+
     printf("Árvore AVL em ordem: ");
     percorrerEmOrdem(raiz);
     printf("\n");
 
-    int valorParaBuscar = 40;
-    int comparacoes = 0;
-    clock_t inicio = clock();
-    NoAVL* resultado = buscar(raiz, valorParaBuscar, &comparacoes);
-    clock_t fim = clock();
-    double tempo = (double)(fim - inicio) / CLOCKS_PER_SEC;
+    printf("Número total de rotações: %d\n", rotacoes);
+    printf("Número total de comparações: %d\n", comparacoesTotal);
+    printf("Tempo total de busca: %f segundos\n", tempoTotal);
 
-    if (resultado != NULL) {
-        printf("Valor %d encontrado na árvore.\n", valorParaBuscar);
-    } else {
-        printf("Valor %d não encontrado na árvore.\n", valorParaBuscar);
-    }
-    printf("Tempo de busca: %f segundos\n", tempo);
-    printf("Número de comparações: %d\n", comparacoes);
-    printf("Altura da árvore: %d\n", altura(raiz));
-
+    free(valores);
     return 0;
 }
