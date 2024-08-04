@@ -2,33 +2,35 @@
 #include <stdlib.h>
 #include <time.h>
 
-typedef struct No {
+typedef struct NoABB {
     int dado;
-    struct No* esquerda;
-    struct No* direita;
-} No;
+    struct NoABB* esquerda;
+    struct NoABB* direita;
+} NoABB;
 
-No* criarNo(int dado) {
-    No* novoNo = (No*)malloc(sizeof(No));
+int comparacoes = 0;
+
+NoABB* criarNoABB(int dado) {
+    NoABB* novoNo = (NoABB*)malloc(sizeof(NoABB));
     novoNo->dado = dado;
     novoNo->esquerda = NULL;
     novoNo->direita = NULL;
     return novoNo;
 }
 
-No* inserir(No* raiz, int dado) {
+NoABB* inserir(NoABB* raiz, int dado) {
     if (raiz == NULL) {
-        return criarNo(dado);
+        return criarNoABB(dado);
     }
     if (dado < raiz->dado) {
         raiz->esquerda = inserir(raiz->esquerda, dado);
-    } else if (dado > raiz->dado) {
+    } else {
         raiz->direita = inserir(raiz->direita, dado);
     }
     return raiz;
 }
 
-No* buscar(No* raiz, int dado, int* comparacoes) {
+NoABB* buscar(NoABB* raiz, int dado, int* comparacoes) {
     (*comparacoes)++;
     if (raiz == NULL || raiz->dado == dado) {
         return raiz;
@@ -40,7 +42,7 @@ No* buscar(No* raiz, int dado, int* comparacoes) {
     }
 }
 
-void percorrerEmOrdem(No* raiz) {
+void percorrerEmOrdem(NoABB* raiz) {
     if (raiz != NULL) {
         percorrerEmOrdem(raiz->esquerda);
         printf("%d ", raiz->dado);
@@ -48,43 +50,81 @@ void percorrerEmOrdem(No* raiz) {
     }
 }
 
-int altura(No* raiz) {
-    if (raiz == NULL) {
-        return 0;
+void lerValoresDoArquivo(const char* nomeArquivo, int** valores, int* n) {
+    FILE* arquivo = fopen(nomeArquivo, "r");
+    if (arquivo == NULL) {
+        perror("Erro ao abrir o arquivo");
+        exit(EXIT_FAILURE);
     }
-    int alturaEsquerda = altura(raiz->esquerda);
-    int alturaDireita = altura(raiz->direita);
-    return (alturaEsquerda > alturaDireita ? alturaEsquerda : alturaDireita) + 1;
+
+    int capacidade = 1000;
+    *valores = (int*)malloc(capacidade * sizeof(int));
+    *n = 0;
+
+    int valor;
+    while (fscanf(arquivo, "%d", &valor) != EOF) {
+        if (*n >= capacidade) {
+            capacidade *= 2;
+            *valores = (int*)realloc(*valores, capacidade * sizeof(int));
+        }
+        (*valores)[(*n)++] = valor;
+    }
+
+    fclose(arquivo);
 }
 
-int main() {
-    No* raiz = NULL;
-    int valores[] = {50, 30, 20, 40, 70, 60, 80};
-    int n = sizeof(valores) / sizeof(valores[0]);
+void buscarAleatorios(NoABB* raiz, int* valores, int n, double* tempoTotal, int* comparacoesTotal) {
+    int numBuscas = n / 5;  // 20% dos valores
+    int* valoresSelecionados = (int*)malloc(numBuscas * sizeof(int));
+
+    srand(time(NULL));
+    for (int i = 0; i < numBuscas; i++) {
+        int index = rand() % n;
+        valoresSelecionados[i] = valores[index];
+    }
+
+    *tempoTotal = 0.0;
+    *comparacoesTotal = 0;
+    for (int i = 0; i < numBuscas; i++) {
+        int comparacoes = 0;
+        clock_t inicio = clock();
+        buscar(raiz, valoresSelecionados[i], &comparacoes);
+        clock_t fim = clock();
+        *tempoTotal += (double)(fim - inicio) / CLOCKS_PER_SEC;
+        *comparacoesTotal += comparacoes;
+    }
+
+    free(valoresSelecionados);
+}
+
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Uso: %s <nome do arquivo>\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    const char* nomeArquivo = argv[1];
+    NoABB* raiz = NULL;
+
+    int* valores;
+    int n;
+    lerValoresDoArquivo(nomeArquivo, &valores, &n);
 
     for (int i = 0; i < n; i++) {
         raiz = inserir(raiz, valores[i]);
     }
 
-    printf("Árvore Binária de Busca em ordem: ");
+    double tempoTotal;
+    int comparacoesTotal;
+    buscarAleatorios(raiz, valores, n, &tempoTotal, &comparacoesTotal);
+
+    printf("Árvore ABB em ordem: ");
     percorrerEmOrdem(raiz);
     printf("\n");
 
-    int valorParaBuscar = 42;
-    int comparacoes = 0;
-    clock_t inicio = clock();
-    No* resultado = buscar(raiz, valorParaBuscar, &comparacoes);
-    clock_t fim = clock();
-    double tempo = (double)(fim - inicio) / CLOCKS_PER_SEC;
+    printf("Número total de comparações: %d\n", comparacoesTotal);
+    printf("Tempo total de busca: %f segundos\n", tempoTotal);
 
-    if (resultado != NULL) {
-        printf("Valor %d encontrado na árvore.\n", valorParaBuscar);
-    } else {
-        printf("Valor %d não encontrado na árvore.\n", valorParaBuscar);
-    }
-    printf("Tempo de busca: %f segundos\n", tempo);
-    printf("Número de comparações: %d\n", comparacoes);
-    printf("Altura da árvore: %d\n", altura(raiz));
-
+    free(valores);
     return 0;
 }
