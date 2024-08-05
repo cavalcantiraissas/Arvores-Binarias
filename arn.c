@@ -2,35 +2,36 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define VERMELHO 0
-#define PRETO 1
+typedef enum { VERMELHO, PRETO } Cor;
 
-typedef struct NoRubroNegro {
+typedef struct NoARN {
     int dado;
-    int cor;
-    struct NoRubroNegro* esquerda;
-    struct NoRubroNegro* direita;
-    struct NoRubroNegro* pai;
-} NoRubroNegro;
+    struct NoARN* esquerda;
+    struct NoARN* direita;
+    struct NoARN* pai;
+    Cor cor;
+} NoARN;
 
-int rotacoes = 0;  
-int comparacoes = 0;  
-
-NoRubroNegro* criarNoRubroNegro(int dado) {
-    NoRubroNegro* novoNo = (NoRubroNegro*)malloc(sizeof(NoRubroNegro));
+NoARN* criarNoARN(int dado) {
+    NoARN* novoNo = (NoARN*)malloc(sizeof(NoARN));
+    if (novoNo == NULL) {
+        printf("Erro ao alocar memória para o novo nó.\n");
+        exit(1);
+    }
     novoNo->dado = dado;
-    novoNo->cor = VERMELHO;
     novoNo->esquerda = NULL;
     novoNo->direita = NULL;
     novoNo->pai = NULL;
+    novoNo->cor = VERMELHO;
     return novoNo;
 }
 
-NoRubroNegro* rotacionarEsquerda(NoRubroNegro* raiz, NoRubroNegro* x) {
-    rotacoes++; 
-    NoRubroNegro* y = x->direita;
+NoARN* rotacionarEsquerda(NoARN* raiz, NoARN* x) {
+    NoARN* y = x->direita;
     x->direita = y->esquerda;
-    if (y->esquerda != NULL) y->esquerda->pai = x;
+    if (y->esquerda != NULL) {
+        y->esquerda->pai = x;
+    }
     y->pai = x->pai;
     if (x->pai == NULL) {
         raiz = y;
@@ -44,57 +45,63 @@ NoRubroNegro* rotacionarEsquerda(NoRubroNegro* raiz, NoRubroNegro* x) {
     return raiz;
 }
 
-NoRubroNegro* rotacionarDireita(NoRubroNegro* raiz, NoRubroNegro* y) {
-    rotacoes++; 
-    NoRubroNegro* x = y->esquerda;
+NoARN* rotacionarDireita(NoARN* raiz, NoARN* y) {
+    NoARN* x = y->esquerda;
     y->esquerda = x->direita;
-    if (x->direita != NULL) x->direita->pai = y;
+    if (x->direita != NULL) {
+        x->direita->pai = y;
+    }
     x->pai = y->pai;
     if (y->pai == NULL) {
         raiz = x;
-    } else if (y == y->pai->esquerda) {
-        y->pai->esquerda = x;
-    } else {
+    } else if (y == y->pai->direita) {
         y->pai->direita = x;
+    } else {
+        y->pai->esquerda = x;
     }
     x->direita = y;
     y->pai = x;
     return raiz;
 }
 
-NoRubroNegro* ajustarNoRubroNegro(NoRubroNegro* raiz, NoRubroNegro* no) {
-    while (no != NULL && no->pai != NULL && no->pai->cor == VERMELHO) {
-        if (no->pai == no->pai->pai->esquerda) {
-            NoRubroNegro* tio = no->pai->pai->direita;
+NoARN* balancearInsercao(NoARN* raiz, NoARN* k, int* numRotacoes) {
+    NoARN* tio;
+    while (k->pai != NULL && k->pai->cor == VERMELHO) {
+        if (k->pai == k->pai->pai->esquerda) {
+            tio = k->pai->pai->direita;
             if (tio != NULL && tio->cor == VERMELHO) {
-                no->pai->cor = PRETO;
+                k->pai->cor = PRETO;
                 tio->cor = PRETO;
-                no->pai->pai->cor = VERMELHO;
-                no = no->pai->pai;
+                k->pai->pai->cor = VERMELHO;
+                k = k->pai->pai;
             } else {
-                if (no == no->pai->direita) {
-                    no = no->pai;
-                    raiz = rotacionarEsquerda(raiz, no);
+                if (k == k->pai->direita) {
+                    k = k->pai;
+                    raiz = rotacionarEsquerda(raiz, k);
+                    (*numRotacoes)++;
                 }
-                no->pai->cor = PRETO;
-                no->pai->pai->cor = VERMELHO;
-                raiz = rotacionarDireita(raiz, no->pai->pai);
+                k->pai->cor = PRETO;
+                k->pai->pai->cor = VERMELHO;
+                raiz = rotacionarDireita(raiz, k->pai->pai);
+                (*numRotacoes)++;
             }
         } else {
-            NoRubroNegro* tio = no->pai->pai->esquerda;
+            tio = k->pai->pai->esquerda;
             if (tio != NULL && tio->cor == VERMELHO) {
-                no->pai->cor = PRETO;
+                k->pai->cor = PRETO;
                 tio->cor = PRETO;
-                no->pai->pai->cor = VERMELHO;
-                no = no->pai->pai;
+                k->pai->pai->cor = VERMELHO;
+                k = k->pai->pai;
             } else {
-                if (no == no->pai->esquerda) {
-                    no = no->pai;
-                    raiz = rotacionarDireita(raiz, no);
+                if (k == k->pai->esquerda) {
+                    k = k->pai;
+                    raiz = rotacionarDireita(raiz, k);
+                    (*numRotacoes)++;
                 }
-                no->pai->cor = PRETO;
-                no->pai->pai->cor = VERMELHO;
-                raiz = rotacionarEsquerda(raiz, no->pai->pai);
+                k->pai->cor = PRETO;
+                k->pai->pai->cor = VERMELHO;
+                raiz = rotacionarEsquerda(raiz, k->pai->pai);
+                (*numRotacoes)++;
             }
         }
     }
@@ -102,10 +109,9 @@ NoRubroNegro* ajustarNoRubroNegro(NoRubroNegro* raiz, NoRubroNegro* no) {
     return raiz;
 }
 
-NoRubroNegro* inserir(NoRubroNegro* raiz, int dado) {
-    NoRubroNegro* novoNo = criarNoRubroNegro(dado);
-    NoRubroNegro* y = NULL;
-    NoRubroNegro* x = raiz;
+NoARN* inserirARN(NoARN* raiz, NoARN* novoNo, int* numRotacoes) {
+    NoARN* y = NULL;
+    NoARN* x = raiz;
     while (x != NULL) {
         y = x;
         if (novoNo->dado < x->dado) {
@@ -122,105 +128,106 @@ NoRubroNegro* inserir(NoRubroNegro* raiz, int dado) {
     } else {
         y->direita = novoNo;
     }
-    raiz = ajustarNoRubroNegro(raiz, novoNo);
+    raiz = balancearInsercao(raiz, novoNo, numRotacoes);
     return raiz;
 }
 
-NoRubroNegro* buscar(NoRubroNegro* raiz, int dado, int* comparacoes) {
+void percorrerEmOrdemARN(NoARN* raiz) {
+    if (raiz != NULL) {
+        percorrerEmOrdemARN(raiz->esquerda);
+        printf("%d ", raiz->dado);
+        percorrerEmOrdemARN(raiz->direita);
+    }
+}
+
+NoARN* buscarARN(NoARN* raiz, int dado, int* comparacoes) {
     (*comparacoes)++;
     if (raiz == NULL || raiz->dado == dado) {
         return raiz;
     }
     if (dado < raiz->dado) {
-        return buscar(raiz->esquerda, dado, comparacoes);
+        return buscarARN(raiz->esquerda, dado, comparacoes);
     } else {
-        return buscar(raiz->direita, dado, comparacoes);
+        return buscarARN(raiz->direita, dado, comparacoes);
     }
 }
 
-void percorrerEmOrdem(NoRubroNegro* raiz) {
-    if (raiz != NULL) {
-        percorrerEmOrdem(raiz->esquerda);
-        printf("%d(%s) ", raiz->dado, raiz->cor == PRETO ? "PRETO" : "VERMELHO");
-        percorrerEmOrdem(raiz->direita);
+int alturaARN(NoARN* raiz) {
+    if (raiz == NULL) {
+        return 0;
     }
+    int alturaEsquerda = alturaARN(raiz->esquerda);
+    int alturaDireita = alturaARN(raiz->direita);
+    return (alturaEsquerda > alturaDireita ? alturaEsquerda : alturaDireita) + 1;
 }
 
-void lerValoresDoArquivo(const char* nomeArquivo, int** valores, int* n) {
-    FILE* arquivo = fopen(nomeArquivo, "r");
-    if (arquivo == NULL) {
-        perror("Erro ao abrir o arquivo");
-        exit(EXIT_FAILURE);
-    }
-
-    int capacidade = 1000;
-    *valores = (int*)malloc(capacidade * sizeof(int));
-    *n = 0;
-
-    int valor;
-    while (fscanf(arquivo, "%d", &valor) != EOF) {
-        if (*n >= capacidade) {
-            capacidade *= 2;
-            *valores = (int*)realloc(*valores, capacidade * sizeof(int));
-        }
-        (*valores)[(*n)++] = valor;
-    }
-
-    fclose(arquivo);
-}
-
-void buscarAleatorios(NoRubroNegro* raiz, int* valores, int n, double* tempoTotal, int* comparacoesTotal) {
-    int numBuscas = n / 5;  // 20% dos valores
-    int* valoresSelecionados = (int*)malloc(numBuscas * sizeof(int));
-
+void buscar20PorCentoARN(NoARN* raiz, int* valores, int numValores) {
+    int n = numValores * 0.20;
+    int totalComparacoes = 0;
+    double totalTempo = 0.0;
     srand(time(NULL));
-    for (int i = 0; i < numBuscas; i++) {
-        int index = rand() % n;
-        valoresSelecionados[i] = valores[index];
-    }
 
-    *tempoTotal = 0.0;
-    *comparacoesTotal = 0;
-    for (int i = 0; i < numBuscas; i++) {
+    for (int i = 0; i < n; i++) {
+        int index = rand() % numValores;
+        int valorParaBuscar = valores[index];
         int comparacoes = 0;
         clock_t inicio = clock();
-        buscar(raiz, valoresSelecionados[i], &comparacoes);
+        NoARN* resultado = buscarARN(raiz, valorParaBuscar, &comparacoes);
         clock_t fim = clock();
-        *tempoTotal += (double)(fim - inicio) / CLOCKS_PER_SEC;
-        *comparacoesTotal += comparacoes;
+        double tempo = (double)(fim - inicio) / CLOCKS_PER_SEC;
+
+        totalComparacoes += comparacoes;
+        totalTempo += tempo;
     }
 
-    free(valoresSelecionados);
+    printf("Total de tempo para busca de 20%% dos valores: %f segundos\n", totalTempo);
+    printf("Total de comparações: %d\n", totalComparacoes);
 }
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        fprintf(stderr, "Uso: %s <nome do arquivo>\n", argv[0]);
-        return EXIT_FAILURE;
+        printf("Uso: %s <nome_do_arquivo>\n", argv[0]);
+        return 1;
     }
 
-    const char* nomeArquivo = argv[1];
-    NoRubroNegro* raiz = NULL;
-
-    int* valores;
-    int n;
-    lerValoresDoArquivo(nomeArquivo, &valores, &n);
-
-    for (int i = 0; i < n; i++) {
-        raiz = inserir(raiz, valores[i]);
+    NoARN* raiz = NULL;
+    int numValores = 5000; // Ajuste conforme necessário
+    int* valores = (int*)malloc(numValores * sizeof(int));
+    if (valores == NULL) {
+        printf("Erro ao alocar memória para os valores.\n");
+        return 1;
     }
 
-    double tempoTotal;
-    int comparacoesTotal;
-    buscarAleatorios(raiz, valores, n, &tempoTotal, &comparacoesTotal);
+    // Carregar os valores do arquivo
+    FILE* arquivo = fopen(argv[1], "r");
+    if (arquivo == NULL) {
+        printf("Erro ao abrir o arquivo %s\n", argv[1]);
+        free(valores);
+        return 1;
+    }
+
+    int numRotacoes = 0;
+    for (int i = 0; i < numValores; i++) {
+        if (fscanf(arquivo, "%d", &valores[i]) != 1) {
+            printf("Erro ao ler valor do arquivo\n");
+            fclose(arquivo);
+            free(valores);
+            return 1;
+        }
+        NoARN* novoNo = criarNoARN(valores[i]);
+        raiz = inserirARN(raiz, novoNo, &numRotacoes);
+    }
+    fclose(arquivo);
 
     printf("Árvore Rubro-Negra em ordem: ");
-    percorrerEmOrdem(raiz);
+    percorrerEmOrdemARN(raiz);
     printf("\n");
 
-    printf("Número total de rotações: %d\n", rotacoes);
-    printf("Número total de comparações: %d\n", comparacoesTotal);
-    printf("Tempo total de busca: %f segundos\n", tempoTotal);
+    int alturaArvoreARN = alturaARN(raiz);
+    printf("Altura da Árvore Rubro-Negra: %d\n", alturaArvoreARN);
+    printf("Número total de rotações: %d\n", numRotacoes);
+
+    buscar20PorCentoARN(raiz, valores, numValores);
 
     free(valores);
     return 0;
