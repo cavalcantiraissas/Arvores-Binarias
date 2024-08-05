@@ -10,6 +10,10 @@ typedef struct NoABB {
 
 NoABB* criarNoABB(int dado) {
     NoABB* novoNo = (NoABB*)malloc(sizeof(NoABB));
+    if (novoNo == NULL) {
+        printf("Erro ao alocar memória para o novo nó.\n");
+        exit(1);
+    }
     novoNo->dado = dado;
     novoNo->esquerda = NULL;
     novoNo->direita = NULL;
@@ -50,7 +54,10 @@ void percorrerEmOrdem(NoABB* raiz) {
 
 void buscar20PorCento(NoABB* raiz, int* valores, int numValores) {
     int n = numValores * 0.20;
+    int totalComparacoes = 0;
+    double totalTempo = 0.0;
     srand(time(NULL));
+
     for (int i = 0; i < n; i++) {
         int index = rand() % numValores;
         int valorParaBuscar = valores[index];
@@ -60,29 +67,46 @@ void buscar20PorCento(NoABB* raiz, int* valores, int numValores) {
         clock_t fim = clock();
         double tempo = (double)(fim - inicio) / CLOCKS_PER_SEC;
 
-        if (resultado != NULL) {
-            printf("Valor %d encontrado na árvore.\n", valorParaBuscar);
-        } else {
-            printf("Valor %d não encontrado na árvore.\n", valorParaBuscar);
-        }
-        printf("Tempo de busca: %f segundos\n", tempo);
-        printf("Número de comparações: %d\n", comparacoes);
+        totalComparacoes += comparacoes;
+        totalTempo += tempo;
     }
+
+    printf("Total de tempo: %f segundos\n", totalTempo);
+    printf("Total de comparações: %d\n", totalComparacoes);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        printf("Uso: %s <nome_do_arquivo>\n", argv[0]);
+        return 1;
+    }
+
     NoABB* raiz = NULL;
-    int numValores = 5000;
+    int numValores = 5000; // Ajuste conforme necessário
     int* valores = (int*)malloc(numValores * sizeof(int));
-    
-    // Carregar os valores do arquivo
-    FILE* arquivo = fopen("entrada_5000.txt", "r");
+    if (valores == NULL) {
+        printf("Erro ao alocar memória para os valores.\n");
+        return 1;
+    }
+
+    FILE* arquivo = fopen(argv[1], "r");
+    if (arquivo == NULL) {
+        printf("Erro ao abrir o arquivo %s\n", argv[1]);
+        free(valores);
+        return 1;
+    }
+
     for (int i = 0; i < numValores; i++) {
-        fscanf(arquivo, "%d", &valores[i]);
+        if (fscanf(arquivo, "%d", &valores[i]) != 1) {
+            printf("Erro ao ler valor do arquivo\n");
+            fclose(arquivo);
+            free(valores);
+            return 1;
+        }
         raiz = inserir(raiz, valores[i]);
     }
     fclose(arquivo);
-    
+
     printf("Árvore Binária de Busca em ordem: ");
     percorrerEmOrdem(raiz);
     printf("\n");
