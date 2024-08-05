@@ -8,7 +8,7 @@ typedef struct NoABB {
     struct NoABB* direita;
 } NoABB;
 
-NoABB* criarNoABB(int dado) {
+NoABB* criarNo(int dado) {
     NoABB* novoNo = (NoABB*)malloc(sizeof(NoABB));
     if (novoNo == NULL) {
         printf("Erro ao alocar memória para o novo nó.\n");
@@ -22,11 +22,11 @@ NoABB* criarNoABB(int dado) {
 
 NoABB* inserir(NoABB* raiz, int dado) {
     if (raiz == NULL) {
-        return criarNoABB(dado);
+        return criarNo(dado);
     }
     if (dado < raiz->dado) {
         raiz->esquerda = inserir(raiz->esquerda, dado);
-    } else if (dado > raiz->dado) {
+    } else {
         raiz->direita = inserir(raiz->direita, dado);
     }
     return raiz;
@@ -52,6 +52,15 @@ void percorrerEmOrdem(NoABB* raiz) {
     }
 }
 
+int alturaABB(NoABB* raiz) {
+    if (raiz == NULL) {
+        return 0;
+    }
+    int alturaEsquerda = alturaABB(raiz->esquerda);
+    int alturaDireita = alturaABB(raiz->direita);
+    return (alturaEsquerda > alturaDireita ? alturaEsquerda : alturaDireita) + 1;
+}
+
 void buscar20PorCento(NoABB* raiz, int* valores, int numValores) {
     int n = numValores * 0.20;
     int totalComparacoes = 0;
@@ -71,7 +80,7 @@ void buscar20PorCento(NoABB* raiz, int* valores, int numValores) {
         totalTempo += tempo;
     }
 
-    printf("Total de tempo: %f segundos\n", totalTempo);
+    printf("Total de tempo para busca de 20%% dos valores: %f segundos\n", totalTempo);
     printf("Total de comparações: %d\n", totalComparacoes);
 }
 
@@ -82,7 +91,7 @@ int main(int argc, char* argv[]) {
     }
 
     NoABB* raiz = NULL;
-    int numValores = 5000; // Ajuste conforme necessário
+    int numValores = 5000; 
     int* valores = (int*)malloc(numValores * sizeof(int));
     if (valores == NULL) {
         printf("Erro ao alocar memória para os valores.\n");
@@ -111,9 +120,13 @@ int main(int argc, char* argv[]) {
     percorrerEmOrdem(raiz);
     printf("\n");
 
+    int alturaArvoreABB = alturaABB(raiz);
+    printf("Altura da Árvore Binária de Busca: %d\n", alturaArvoreABB);
+
     buscar20PorCento(raiz, valores, numValores);
 
     free(valores);
     return 0;
 }
+
 
