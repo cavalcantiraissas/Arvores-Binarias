@@ -64,34 +64,3 @@
 1. Árvore Binária de Busca (ABB): O código já está implementado para a Etapa 4.
 2. Árvore AVL: O código já está implementado para a Etapa 4.
 3. Árvore Rubro-Negra (ARN): O código já está implementado para a Etapa 4.
-
-### Como Executar:
-1. Compile e execute os códigos modificados para ABB e AVL:
-    * gcc abb.c -o abb
-    * gcc avl.c -o avl
-2. Execute cada árvore com os arquivos de entrada:
-    * ./abb arquivo_5000.txt
-    * ./avl arquivo_5000.txt
-    * ./arn arquivo_5000.txt
-
-# Como Executar 
-
-## Prepare os Arquivos de Entrada: 
-Use o script gerar_numeros.c para criar arquivos de entrada com 5.000 e 20.000 números, como entrada_5000.txt e entrada_20000.txt.
-
-## Compile os Códigos 
-- gcc gerar_numeros.c -o gerar_numeros
-- gcc abb.c -o abb
-- gcc avl.c -o avl
-- gcc arn.c -o arn
-
-## Gere os Arquivos de Entrada: 
-Execute o programa gerar_numeros para criar os arquivos de entrada:
-- ./gerar_numeros 5000
-- ./gerar_numeros 20000
-
-## Execute os Programas das Árvores: 
-- ./abb
-- ./avl
-- ./arn
-
