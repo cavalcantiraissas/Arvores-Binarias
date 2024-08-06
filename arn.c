@@ -180,7 +180,7 @@ void buscar20PorCentoARN(NoARN* raiz, int* valores, int numValores) {
         totalTempo += tempo;
     }
 
-    printf("Total de tempo para busca de 20%% dos valores: %f segundos\n", totalTempo);
+    printf("Total de tempo para busca dos valores: %f segundos\n", totalTempo);
     printf("Total de comparações: %d\n", totalComparacoes);
 }
 
